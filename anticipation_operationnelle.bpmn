@@ -1,0 +1,849 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  BPMN 2.0 – Processus d'Anticipation Opérationnelle
+  Transformé depuis :
+    - Diagramme d'activités (swim-lanes)
+    - Diagramme de séquence
+    - Diagramme de cas d'utilisation
+
+  Participants / Lanes :
+    1. COS (Commandant des Opérations de Secours)
+    2. Chef du PC
+    3. Officier Anticipation
+    4. Système d'Anticipation
+    5. Officier Moyen
+    6. Officiers Action et Renseignement
+
+  Boucles de validation (XOR gateways) :
+    - SE (Situations Envisageables)
+    - Objectifs
+    - IM + DTA (Idées de Manœuvre + Dispositifs Tactiques d'Action)
+-->
+<definitions
+  xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  targetNamespace="http://anticipation-operationnelle/bpmn"
+  exporter="BPMN 2.0 Manual"
+  exporterVersion="1.0">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       COLLABORATION  (one pool, six lanes)
+  ═══════════════════════════════════════════════════════════ -->
+  <collaboration id="collab_anticipation">
+    <participant id="pool_anticipation"
+                 name="Travail d'Intervention – Anticipation Opérationnelle"
+                 processRef="proc_anticipation"/>
+  </collaboration>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PROCESS
+  ═══════════════════════════════════════════════════════════ -->
+  <process id="proc_anticipation" name="Processus d'Anticipation Opérationnelle"
+           isExecutable="false">
+
+    <!-- ── LANE SET ─────────────────────────────────────────── -->
+    <laneSet id="laneSet1">
+
+      <!-- Lane 1 : COS -->
+      <lane id="lane_cos" name="COS">
+        <flowNodeRef>start1</flowNodeRef>
+        <flowNodeRef>task_emettre_ordre</flowNodeRef>
+        <flowNodeRef>task_recevoir_retour_informations</flowNodeRef>
+        <flowNodeRef>gw_se_validees</flowNodeRef>
+        <flowNodeRef>task_approuver_se</flowNodeRef>
+        <flowNodeRef>task_envoyer_retour_correction_se</flowNodeRef>
+        <flowNodeRef>gw_objectifs_approuves</flowNodeRef>
+        <flowNodeRef>task_approuver_objectifs</flowNodeRef>
+        <flowNodeRef>task_envoyer_retour_correction_obj</flowNodeRef>
+        <flowNodeRef>gw_im_dta_approuves</flowNodeRef>
+        <flowNodeRef>task_approuver_im_dta</flowNodeRef>
+        <flowNodeRef>task_envoyer_retour_correction_im_dta</flowNodeRef>
+        <flowNodeRef>task_arreter_decision</flowNodeRef>
+      </lane>
+
+      <!-- Lane 2 : Chef du PC -->
+      <lane id="lane_chef_pc" name="Chef du PC">
+        <flowNodeRef>task_transmettre_ordre_cos</flowNodeRef>
+        <flowNodeRef>gw_parallel_field_start</flowNodeRef>
+        <flowNodeRef>gw_parallel_field_end</flowNodeRef>
+        <flowNodeRef>task_transmettre_informations</flowNodeRef>
+        <flowNodeRef>task_transmettre_se</flowNodeRef>
+        <flowNodeRef>task_transmettre_corrections_se</flowNodeRef>
+        <flowNodeRef>task_transmettre_se_approuves</flowNodeRef>
+        <flowNodeRef>task_transmettre_objectifs</flowNodeRef>
+        <flowNodeRef>task_transmettre_corrections_obj</flowNodeRef>
+        <flowNodeRef>task_transmettre_objectifs_approuves</flowNodeRef>
+        <flowNodeRef>task_transmettre_im_dta</flowNodeRef>
+        <flowNodeRef>task_transmettre_corrections_im_dta</flowNodeRef>
+        <flowNodeRef>task_transmettre_decision_finale</flowNodeRef>
+      </lane>
+
+      <!-- Lane 3 : Officier Anticipation -->
+      <lane id="lane_anticipation" name="Officier Anticipation">
+        <flowNodeRef>task_entrer_informations</flowNodeRef>
+        <flowNodeRef>task_demander_se</flowNodeRef>
+        <flowNodeRef>task_proposer_se</flowNodeRef>
+        <flowNodeRef>task_demander_objectifs</flowNodeRef>
+        <flowNodeRef>task_proposer_objectifs</flowNodeRef>
+        <flowNodeRef>task_demander_im_dta</flowNodeRef>
+        <flowNodeRef>task_proposer_im_dta</flowNodeRef>
+      </lane>
+
+      <!-- Lane 4 : Système d'Anticipation -->
+      <lane id="lane_systeme" name="Système d'Anticipation">
+        <flowNodeRef>task_valider_stocker</flowNodeRef>
+        <flowNodeRef>task_generer_se</flowNodeRef>
+        <flowNodeRef>task_generer_objectifs</flowNodeRef>
+        <flowNodeRef>task_generer_im_dta</flowNodeRef>
+      </lane>
+
+      <!-- Lane 5 : Officier Moyen -->
+      <lane id="lane_moyen" name="Officier Moyen">
+        <flowNodeRef>task_transmettre_disponibilites</flowNodeRef>
+      </lane>
+
+      <!-- Lane 6 : Officiers Action et Renseignement -->
+      <lane id="lane_action_renseignement" name="Officiers Action et Renseignement">
+        <flowNodeRef>task_communiquer_realite_terrain</flowNodeRef>
+        <flowNodeRef>task_transmettre_analyse_donnees</flowNodeRef>
+        <flowNodeRef>task_executer_decision</flowNodeRef>
+        <flowNodeRef>end1</flowNodeRef>
+      </lane>
+
+    </laneSet>
+
+    <!-- ══════════════════════════════════════════════════════
+         EVENTS
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- Start : nouvelle situation ou émission d'un ordre initial par le COS -->
+    <startEvent id="start1" name="Nouvelle situation /&#10;émettre un ordre initial">
+      <outgoing>sf_start_to_emettre</outgoing>
+    </startEvent>
+
+    <!-- End : décision du COS exécutée -->
+    <endEvent id="end1" name="Fin – Décision du COS exécutée">
+      <incoming>sf_executer_to_end</incoming>
+    </endEvent>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 0 – ÉMISSION DE L'ORDRE INITIAL
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- COS : émet l'ordre initial -->
+    <task id="task_emettre_ordre" name="Émettre un ordre initial">
+      <incoming>sf_start_to_emettre</incoming>
+      <outgoing>sf_emettre_to_transmettre_ordre</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet l'ordre du COS -->
+    <task id="task_transmettre_ordre_cos" name="Transmettre l'ordre du COS">
+      <incoming>sf_emettre_to_transmettre_ordre</incoming>
+      <outgoing>sf_transmettre_ordre_to_parallel_start</outgoing>
+    </task>
+
+    <!-- COS : reçoit les informations (retour du terrain) -->
+    <task id="task_recevoir_retour_informations" name="Recevoir les informations">
+      <incoming>sf_transmettre_ordre_to_parallel_start</incoming>
+      <outgoing>sf_recevoir_to_parallel</outgoing>
+    </task>
+
+    <!-- ── Parallel gateway : collect field information in parallel ── -->
+    <parallelGateway id="gw_parallel_field_start" name="Collecte informations terrain (début)">
+      <incoming>sf_recevoir_to_parallel</incoming>
+      <outgoing>sf_parallel_to_communiquer</outgoing>
+      <outgoing>sf_parallel_to_disponibilites</outgoing>
+    </parallelGateway>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 0a – OFFICIERS ACTION ET RENSEIGNEMENT
+    ══════════════════════════════════════════════════════ -->
+
+    <task id="task_communiquer_realite_terrain" name="Communiquer réalité terrain">
+      <incoming>sf_parallel_to_communiquer</incoming>
+      <outgoing>sf_communiquer_to_analyse</outgoing>
+    </task>
+
+    <task id="task_transmettre_analyse_donnees" name="Transmettre l'analyse des données">
+      <incoming>sf_communiquer_to_analyse</incoming>
+      <outgoing>sf_analyse_to_parallel_end</outgoing>
+    </task>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 0b – OFFICIER MOYEN
+    ══════════════════════════════════════════════════════ -->
+
+    <task id="task_transmettre_disponibilites"
+          name="Transmettre la disponibilité&#10;et l'évolution des moyens">
+      <incoming>sf_parallel_to_disponibilites</incoming>
+      <outgoing>sf_disponibilites_to_parallel_end</outgoing>
+    </task>
+
+    <!-- Parallel join -->
+    <parallelGateway id="gw_parallel_field_end" name="Collecte informations terrain (fin)">
+      <incoming>sf_analyse_to_parallel_end</incoming>
+      <incoming>sf_disponibilites_to_parallel_end</incoming>
+      <outgoing>sf_parallel_end_to_transmettre_info</outgoing>
+    </parallelGateway>
+
+    <!-- Chef du PC : transmet les informations consolidées -->
+    <task id="task_transmettre_informations" name="Transmettre les informations">
+      <incoming>sf_parallel_end_to_transmettre_info</incoming>
+      <outgoing>sf_transmettre_info_to_entrer</outgoing>
+    </task>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 1 – SITUATIONS ENVISAGEABLES (SE)
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- Officier Anticipation : entre les informations dans le système -->
+    <task id="task_entrer_informations" name="Entrer les informations">
+      <incoming>sf_transmettre_info_to_entrer</incoming>
+      <outgoing>sf_entrer_to_valider</outgoing>
+    </task>
+
+    <!-- Système d'Anticipation : valide et stocke -->
+    <task id="task_valider_stocker" name="Valider et stocker">
+      <incoming>sf_entrer_to_valider</incoming>
+      <outgoing>sf_valider_to_demander_se</outgoing>
+    </task>
+
+    <!-- Officier Anticipation : demande la génération du tableau des SE -->
+    <task id="task_demander_se" name="Demander une proposition&#10;du tableau des SE">
+      <incoming>sf_valider_to_demander_se</incoming>
+      <incoming>sf_corrections_se_to_demander_se</incoming>
+      <outgoing>sf_demander_se_to_generer</outgoing>
+    </task>
+
+    <!-- Système d'Anticipation : génère les SE -->
+    <task id="task_generer_se" name="Générer les SE">
+      <incoming>sf_demander_se_to_generer</incoming>
+      <outgoing>sf_generer_se_to_transmettre</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les SE au COS -->
+    <task id="task_transmettre_se" name="Transmettre les SE">
+      <incoming>sf_generer_se_to_transmettre</incoming>
+      <outgoing>sf_transmettre_se_to_proposer</outgoing>
+    </task>
+
+    <!-- Officier Anticipation : propose les SE -->
+    <task id="task_proposer_se" name="Proposer les SE">
+      <incoming>sf_transmettre_se_to_proposer</incoming>
+      <outgoing>sf_proposer_se_to_gw</outgoing>
+    </task>
+
+    <!-- COS : SE validées ? -->
+    <exclusiveGateway id="gw_se_validees" name="SE validées ?">
+      <incoming>sf_proposer_se_to_gw</incoming>
+      <outgoing>sf_se_oui</outgoing>
+      <outgoing>sf_se_non</outgoing>
+    </exclusiveGateway>
+
+    <!-- [OUI] COS approuve les SE -->
+    <task id="task_approuver_se" name="Approuver les SE">
+      <incoming>sf_se_oui</incoming>
+      <outgoing>sf_approuver_se_to_transmettre_approuves</outgoing>
+    </task>
+
+    <!-- [NON] COS envoie un retour de correction -->
+    <task id="task_envoyer_retour_correction_se" name="Envoyer retour correction (SE)">
+      <incoming>sf_se_non</incoming>
+      <outgoing>sf_retour_se_to_corrections</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les corrections -->
+    <task id="task_transmettre_corrections_se" name="Transmettre les corrections (SE)">
+      <incoming>sf_retour_se_to_corrections</incoming>
+      <outgoing>sf_corrections_se_to_demander_se</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les SE approuvés -->
+    <task id="task_transmettre_se_approuves" name="Transmettre les SE approuvés">
+      <incoming>sf_approuver_se_to_transmettre_approuves</incoming>
+      <outgoing>sf_se_approuves_to_demander_obj</outgoing>
+    </task>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 2 – OBJECTIFS
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- Officier Anticipation : demande la génération des objectifs -->
+    <task id="task_demander_objectifs" name="Demander une proposition&#10;des objectifs">
+      <incoming>sf_se_approuves_to_demander_obj</incoming>
+      <incoming>sf_corrections_obj_to_demander_obj</incoming>
+      <outgoing>sf_demander_obj_to_generer</outgoing>
+    </task>
+
+    <!-- Système d'Anticipation : génère les objectifs -->
+    <task id="task_generer_objectifs" name="Générer les objectifs">
+      <incoming>sf_demander_obj_to_generer</incoming>
+      <outgoing>sf_generer_obj_to_proposer</outgoing>
+    </task>
+
+    <!-- Officier Anticipation : propose les objectifs -->
+    <task id="task_proposer_objectifs" name="Proposer les objectifs">
+      <incoming>sf_generer_obj_to_proposer</incoming>
+      <outgoing>sf_proposer_obj_to_transmettre</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les objectifs au COS -->
+    <task id="task_transmettre_objectifs" name="Transmettre les objectifs">
+      <incoming>sf_proposer_obj_to_transmettre</incoming>
+      <outgoing>sf_transmettre_obj_to_gw</outgoing>
+    </task>
+
+    <!-- COS : Objectifs approuvés ? -->
+    <exclusiveGateway id="gw_objectifs_approuves" name="Objectifs approuvés ?">
+      <incoming>sf_transmettre_obj_to_gw</incoming>
+      <outgoing>sf_obj_oui</outgoing>
+      <outgoing>sf_obj_non</outgoing>
+    </exclusiveGateway>
+
+    <!-- [OUI] COS approuve les objectifs -->
+    <task id="task_approuver_objectifs" name="Approuver les objectifs">
+      <incoming>sf_obj_oui</incoming>
+      <outgoing>sf_approuver_obj_to_transmettre_approuves</outgoing>
+    </task>
+
+    <!-- [NON] COS envoie un retour de correction -->
+    <task id="task_envoyer_retour_correction_obj" name="Envoyer retour correction (Objectifs)">
+      <incoming>sf_obj_non</incoming>
+      <outgoing>sf_retour_obj_to_corrections</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les corrections -->
+    <task id="task_transmettre_corrections_obj" name="Transmettre les corrections (Objectifs)">
+      <incoming>sf_retour_obj_to_corrections</incoming>
+      <outgoing>sf_corrections_obj_to_demander_obj</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les objectifs approuvés -->
+    <task id="task_transmettre_objectifs_approuves" name="Transmettre les objectifs approuvés">
+      <incoming>sf_approuver_obj_to_transmettre_approuves</incoming>
+      <outgoing>sf_obj_approuves_to_demander_im_dta</outgoing>
+    </task>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 3 – IM + DTA (Idées de Manœuvre + Dispositifs Tactiques d'Action)
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- Officier Anticipation : demande la génération des IM + DTA -->
+    <task id="task_demander_im_dta" name="Demander une proposition&#10;des IM + DTA">
+      <incoming>sf_obj_approuves_to_demander_im_dta</incoming>
+      <incoming>sf_corrections_im_dta_to_demander</incoming>
+      <outgoing>sf_demander_im_dta_to_generer</outgoing>
+    </task>
+
+    <!-- Système d'Anticipation : génère les IM + DTA -->
+    <task id="task_generer_im_dta" name="Générer les IM + DTA">
+      <incoming>sf_demander_im_dta_to_generer</incoming>
+      <outgoing>sf_generer_im_dta_to_proposer</outgoing>
+    </task>
+
+    <!-- Officier Anticipation : propose les IM + DTA -->
+    <task id="task_proposer_im_dta" name="Proposer les IM + DTA">
+      <incoming>sf_generer_im_dta_to_proposer</incoming>
+      <outgoing>sf_proposer_im_dta_to_transmettre</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les IM + DTA au COS -->
+    <task id="task_transmettre_im_dta" name="Transmettre les IM + DTA">
+      <incoming>sf_proposer_im_dta_to_transmettre</incoming>
+      <outgoing>sf_transmettre_im_dta_to_gw</outgoing>
+    </task>
+
+    <!-- COS : IM + DTA approuvés ? -->
+    <exclusiveGateway id="gw_im_dta_approuves" name="IM + DTA approuvés ?">
+      <incoming>sf_transmettre_im_dta_to_gw</incoming>
+      <outgoing>sf_im_dta_oui</outgoing>
+      <outgoing>sf_im_dta_non</outgoing>
+    </exclusiveGateway>
+
+    <!-- [OUI] COS approuve les IM + DTA -->
+    <task id="task_approuver_im_dta" name="Approuver les IM + DTA">
+      <incoming>sf_im_dta_oui</incoming>
+      <outgoing>sf_approuver_im_dta_to_arreter</outgoing>
+    </task>
+
+    <!-- [NON] COS envoie un retour de correction -->
+    <task id="task_envoyer_retour_correction_im_dta" name="Envoyer retour correction (IM + DTA)">
+      <incoming>sf_im_dta_non</incoming>
+      <outgoing>sf_retour_im_dta_to_corrections</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet les corrections -->
+    <task id="task_transmettre_corrections_im_dta" name="Transmettre les corrections (IM + DTA)">
+      <incoming>sf_retour_im_dta_to_corrections</incoming>
+      <outgoing>sf_corrections_im_dta_to_demander</outgoing>
+    </task>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 4 – DÉCISION FINALE ET EXÉCUTION
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- COS : arrête sa décision -->
+    <task id="task_arreter_decision" name="Arrêter sa décision">
+      <incoming>sf_approuver_im_dta_to_arreter</incoming>
+      <outgoing>sf_arreter_to_transmettre_decision</outgoing>
+    </task>
+
+    <!-- Chef du PC : transmet la décision finale -->
+    <task id="task_transmettre_decision_finale" name="Transmettre la décision finale">
+      <incoming>sf_arreter_to_transmettre_decision</incoming>
+      <outgoing>sf_decision_to_executer</outgoing>
+    </task>
+
+    <!-- Officiers Action et Renseignement : exécutent la décision du COS -->
+    <task id="task_executer_decision" name="Exécuter la décision du COS">
+      <incoming>sf_decision_to_executer</incoming>
+      <outgoing>sf_executer_to_end</outgoing>
+    </task>
+
+    <!-- ══════════════════════════════════════════════════════
+         SEQUENCE FLOWS
+    ══════════════════════════════════════════════════════ -->
+
+    <!-- Phase 0 – initialisation -->
+    <sequenceFlow id="sf_start_to_emettre"
+                  sourceRef="start1" targetRef="task_emettre_ordre"/>
+    <sequenceFlow id="sf_emettre_to_transmettre_ordre"
+                  sourceRef="task_emettre_ordre" targetRef="task_transmettre_ordre_cos"/>
+    <sequenceFlow id="sf_transmettre_ordre_to_parallel_start"
+                  sourceRef="task_transmettre_ordre_cos" targetRef="task_recevoir_retour_informations"/>
+    <sequenceFlow id="sf_recevoir_to_parallel"
+                  sourceRef="task_recevoir_retour_informations" targetRef="gw_parallel_field_start"/>
+
+    <!-- Phase 0a – Officiers Action et Renseignement -->
+    <sequenceFlow id="sf_parallel_to_communiquer"
+                  sourceRef="gw_parallel_field_start" targetRef="task_communiquer_realite_terrain"/>
+    <sequenceFlow id="sf_communiquer_to_analyse"
+                  sourceRef="task_communiquer_realite_terrain" targetRef="task_transmettre_analyse_donnees"/>
+    <sequenceFlow id="sf_analyse_to_parallel_end"
+                  sourceRef="task_transmettre_analyse_donnees" targetRef="gw_parallel_field_end"/>
+
+    <!-- Phase 0b – Officier Moyen -->
+    <sequenceFlow id="sf_parallel_to_disponibilites"
+                  sourceRef="gw_parallel_field_start" targetRef="task_transmettre_disponibilites"/>
+    <sequenceFlow id="sf_disponibilites_to_parallel_end"
+                  sourceRef="task_transmettre_disponibilites" targetRef="gw_parallel_field_end"/>
+
+    <!-- Jonction parallèle → Chef du PC -->
+    <sequenceFlow id="sf_parallel_end_to_transmettre_info"
+                  sourceRef="gw_parallel_field_end" targetRef="task_transmettre_informations"/>
+    <sequenceFlow id="sf_transmettre_info_to_entrer"
+                  sourceRef="task_transmettre_informations" targetRef="task_entrer_informations"/>
+
+    <!-- Phase 1 – SE -->
+    <sequenceFlow id="sf_entrer_to_valider"
+                  sourceRef="task_entrer_informations" targetRef="task_valider_stocker"/>
+    <sequenceFlow id="sf_valider_to_demander_se"
+                  sourceRef="task_valider_stocker" targetRef="task_demander_se"/>
+    <sequenceFlow id="sf_demander_se_to_generer"
+                  sourceRef="task_demander_se" targetRef="task_generer_se"/>
+    <sequenceFlow id="sf_generer_se_to_transmettre"
+                  sourceRef="task_generer_se" targetRef="task_transmettre_se"/>
+    <sequenceFlow id="sf_transmettre_se_to_proposer"
+                  sourceRef="task_transmettre_se" targetRef="task_proposer_se"/>
+    <sequenceFlow id="sf_proposer_se_to_gw"
+                  sourceRef="task_proposer_se" targetRef="gw_se_validees"/>
+    <sequenceFlow id="sf_se_oui" name="Oui"
+                  sourceRef="gw_se_validees" targetRef="task_approuver_se"/>
+    <sequenceFlow id="sf_se_non" name="Non"
+                  sourceRef="gw_se_validees" targetRef="task_envoyer_retour_correction_se"/>
+    <sequenceFlow id="sf_retour_se_to_corrections"
+                  sourceRef="task_envoyer_retour_correction_se" targetRef="task_transmettre_corrections_se"/>
+    <sequenceFlow id="sf_corrections_se_to_demander_se"
+                  sourceRef="task_transmettre_corrections_se" targetRef="task_demander_se"/>
+    <sequenceFlow id="sf_approuver_se_to_transmettre_approuves"
+                  sourceRef="task_approuver_se" targetRef="task_transmettre_se_approuves"/>
+    <sequenceFlow id="sf_se_approuves_to_demander_obj"
+                  sourceRef="task_transmettre_se_approuves" targetRef="task_demander_objectifs"/>
+
+    <!-- Phase 2 – Objectifs -->
+    <sequenceFlow id="sf_demander_obj_to_generer"
+                  sourceRef="task_demander_objectifs" targetRef="task_generer_objectifs"/>
+    <sequenceFlow id="sf_generer_obj_to_proposer"
+                  sourceRef="task_generer_objectifs" targetRef="task_proposer_objectifs"/>
+    <sequenceFlow id="sf_proposer_obj_to_transmettre"
+                  sourceRef="task_proposer_objectifs" targetRef="task_transmettre_objectifs"/>
+    <sequenceFlow id="sf_transmettre_obj_to_gw"
+                  sourceRef="task_transmettre_objectifs" targetRef="gw_objectifs_approuves"/>
+    <sequenceFlow id="sf_obj_oui" name="Oui"
+                  sourceRef="gw_objectifs_approuves" targetRef="task_approuver_objectifs"/>
+    <sequenceFlow id="sf_obj_non" name="Non"
+                  sourceRef="gw_objectifs_approuves" targetRef="task_envoyer_retour_correction_obj"/>
+    <sequenceFlow id="sf_retour_obj_to_corrections"
+                  sourceRef="task_envoyer_retour_correction_obj" targetRef="task_transmettre_corrections_obj"/>
+    <sequenceFlow id="sf_corrections_obj_to_demander_obj"
+                  sourceRef="task_transmettre_corrections_obj" targetRef="task_demander_objectifs"/>
+    <sequenceFlow id="sf_approuver_obj_to_transmettre_approuves"
+                  sourceRef="task_approuver_objectifs" targetRef="task_transmettre_objectifs_approuves"/>
+    <sequenceFlow id="sf_obj_approuves_to_demander_im_dta"
+                  sourceRef="task_transmettre_objectifs_approuves" targetRef="task_demander_im_dta"/>
+
+    <!-- Phase 3 – IM + DTA -->
+    <sequenceFlow id="sf_demander_im_dta_to_generer"
+                  sourceRef="task_demander_im_dta" targetRef="task_generer_im_dta"/>
+    <sequenceFlow id="sf_generer_im_dta_to_proposer"
+                  sourceRef="task_generer_im_dta" targetRef="task_proposer_im_dta"/>
+    <sequenceFlow id="sf_proposer_im_dta_to_transmettre"
+                  sourceRef="task_proposer_im_dta" targetRef="task_transmettre_im_dta"/>
+    <sequenceFlow id="sf_transmettre_im_dta_to_gw"
+                  sourceRef="task_transmettre_im_dta" targetRef="gw_im_dta_approuves"/>
+    <sequenceFlow id="sf_im_dta_oui" name="Oui"
+                  sourceRef="gw_im_dta_approuves" targetRef="task_approuver_im_dta"/>
+    <sequenceFlow id="sf_im_dta_non" name="Non"
+                  sourceRef="gw_im_dta_approuves" targetRef="task_envoyer_retour_correction_im_dta"/>
+    <sequenceFlow id="sf_retour_im_dta_to_corrections"
+                  sourceRef="task_envoyer_retour_correction_im_dta"
+                  targetRef="task_transmettre_corrections_im_dta"/>
+    <sequenceFlow id="sf_corrections_im_dta_to_demander"
+                  sourceRef="task_transmettre_corrections_im_dta" targetRef="task_demander_im_dta"/>
+    <sequenceFlow id="sf_approuver_im_dta_to_arreter"
+                  sourceRef="task_approuver_im_dta" targetRef="task_arreter_decision"/>
+
+    <!-- Phase 4 – Décision finale et exécution -->
+    <sequenceFlow id="sf_arreter_to_transmettre_decision"
+                  sourceRef="task_arreter_decision" targetRef="task_transmettre_decision_finale"/>
+    <sequenceFlow id="sf_decision_to_executer"
+                  sourceRef="task_transmettre_decision_finale" targetRef="task_executer_decision"/>
+    <sequenceFlow id="sf_executer_to_end"
+                  sourceRef="task_executer_decision" targetRef="end1"/>
+
+  </process>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       BPMN DIAGRAM INTERCHANGE  (layout / positions)
+       Dimensions :  pool 1800 × 2800  (6 lanes of ~450 height each)
+       X origin for each lane starts at x=160 (after lane label at x=0)
+  ═══════════════════════════════════════════════════════════ -->
+  <bpmndi:BPMNDiagram id="diagram1" name="Anticipation Opérationnelle">
+    <bpmndi:BPMNPlane id="plane1" bpmnElement="collab_anticipation">
+
+      <!-- Pool -->
+      <bpmndi:BPMNShape id="shape_pool" bpmnElement="pool_anticipation" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="1800" height="2800"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ── Lane shapes ───────────────────────────────────── -->
+      <bpmndi:BPMNShape id="shape_lane_cos" bpmnElement="lane_cos" isHorizontal="true">
+        <dc:Bounds x="30" y="0" width="1770" height="600"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_chef_pc" bpmnElement="lane_chef_pc" isHorizontal="true">
+        <dc:Bounds x="30" y="600" width="1770" height="500"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_anticipation" bpmnElement="lane_anticipation" isHorizontal="true">
+        <dc:Bounds x="30" y="1100" width="1770" height="500"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_systeme" bpmnElement="lane_systeme" isHorizontal="true">
+        <dc:Bounds x="30" y="1600" width="1770" height="400"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_moyen" bpmnElement="lane_moyen" isHorizontal="true">
+        <dc:Bounds x="30" y="2000" width="1770" height="300"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_action" bpmnElement="lane_action_renseignement" isHorizontal="true">
+        <dc:Bounds x="30" y="2300" width="1770" height="500"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ START EVENT ══ -->
+      <bpmndi:BPMNShape id="shape_start1" bpmnElement="start1">
+        <dc:Bounds x="80" y="260" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="56" y="302" width="86" height="40"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ PHASE 0 ══ -->
+      <bpmndi:BPMNShape id="shape_emettre_ordre" bpmnElement="task_emettre_ordre">
+        <dc:Bounds x="160" y="240" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_ordre_cos" bpmnElement="task_transmettre_ordre_cos">
+        <dc:Bounds x="160" y="660" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_recevoir_retour" bpmnElement="task_recevoir_retour_informations">
+        <dc:Bounds x="360" y="240" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_parallel_start" bpmnElement="gw_parallel_field_start" isMarkerVisible="true">
+        <dc:Bounds x="560" y="680" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <!-- Phase 0a -->
+      <bpmndi:BPMNShape id="shape_communiquer_terrain" bpmnElement="task_communiquer_realite_terrain">
+        <dc:Bounds x="640" y="2340" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_analyse" bpmnElement="task_transmettre_analyse_donnees">
+        <dc:Bounds x="840" y="2340" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <!-- Phase 0b -->
+      <bpmndi:BPMNShape id="shape_transmettre_dispo" bpmnElement="task_transmettre_disponibilites">
+        <dc:Bounds x="640" y="2040" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_parallel_end" bpmnElement="gw_parallel_field_end" isMarkerVisible="true">
+        <dc:Bounds x="1040" y="2360" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_informations" bpmnElement="task_transmettre_informations">
+        <dc:Bounds x="1120" y="660" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ PHASE 1 – SE ══ -->
+      <bpmndi:BPMNShape id="shape_entrer_infos" bpmnElement="task_entrer_informations">
+        <dc:Bounds x="1120" y="1140" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_valider_stocker" bpmnElement="task_valider_stocker">
+        <dc:Bounds x="1120" y="1640" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_demander_se" bpmnElement="task_demander_se">
+        <dc:Bounds x="360" y="1140" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_generer_se" bpmnElement="task_generer_se">
+        <dc:Bounds x="560" y="1640" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_se" bpmnElement="task_transmettre_se">
+        <dc:Bounds x="560" y="660" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_proposer_se" bpmnElement="task_proposer_se">
+        <dc:Bounds x="560" y="1140" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_se" bpmnElement="gw_se_validees" isMarkerVisible="true">
+        <dc:Bounds x="760" y="258" width="40" height="40"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="736" y="230" width="90" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_approuver_se" bpmnElement="task_approuver_se">
+        <dc:Bounds x="840" y="240" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_retour_se" bpmnElement="task_envoyer_retour_correction_se">
+        <dc:Bounds x="840" y="120" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_corrections_se" bpmnElement="task_transmettre_corrections_se">
+        <dc:Bounds x="360" y="660" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_se_approuves" bpmnElement="task_transmettre_se_approuves">
+        <dc:Bounds x="1040" y="660" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ PHASE 2 – Objectifs ══ -->
+      <bpmndi:BPMNShape id="shape_demander_obj" bpmnElement="task_demander_objectifs">
+        <dc:Bounds x="360" y="1300" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_generer_obj" bpmnElement="task_generer_objectifs">
+        <dc:Bounds x="560" y="1740" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_proposer_obj" bpmnElement="task_proposer_objectifs">
+        <dc:Bounds x="560" y="1300" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_obj" bpmnElement="task_transmettre_objectifs">
+        <dc:Bounds x="760" y="800" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_obj" bpmnElement="gw_objectifs_approuves" isMarkerVisible="true">
+        <dc:Bounds x="960" y="258" width="40" height="40"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="930" y="230" width="100" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_approuver_obj" bpmnElement="task_approuver_objectifs">
+        <dc:Bounds x="1040" y="240" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_retour_obj" bpmnElement="task_envoyer_retour_correction_obj">
+        <dc:Bounds x="1040" y="120" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_corrections_obj" bpmnElement="task_transmettre_corrections_obj">
+        <dc:Bounds x="760" y="800" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_obj_approuves" bpmnElement="task_transmettre_objectifs_approuves">
+        <dc:Bounds x="1240" y="800" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ PHASE 3 – IM + DTA ══ -->
+      <bpmndi:BPMNShape id="shape_demander_im_dta" bpmnElement="task_demander_im_dta">
+        <dc:Bounds x="360" y="1460" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_generer_im_dta" bpmnElement="task_generer_im_dta">
+        <dc:Bounds x="560" y="1840" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_proposer_im_dta" bpmnElement="task_proposer_im_dta">
+        <dc:Bounds x="560" y="1460" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_im_dta" bpmnElement="task_transmettre_im_dta">
+        <dc:Bounds x="960" y="900" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_im_dta" bpmnElement="gw_im_dta_approuves" isMarkerVisible="true">
+        <dc:Bounds x="1160" y="258" width="40" height="40"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1120" y="230" width="120" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_approuver_im_dta" bpmnElement="task_approuver_im_dta">
+        <dc:Bounds x="1240" y="240" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_retour_im_dta" bpmnElement="task_envoyer_retour_correction_im_dta">
+        <dc:Bounds x="1240" y="120" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_corrections_im_dta" bpmnElement="task_transmettre_corrections_im_dta">
+        <dc:Bounds x="960" y="900" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ PHASE 4 – Décision finale ══ -->
+      <bpmndi:BPMNShape id="shape_arreter_decision" bpmnElement="task_arreter_decision">
+        <dc:Bounds x="1440" y="240" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_transmettre_decision" bpmnElement="task_transmettre_decision_finale">
+        <dc:Bounds x="1440" y="660" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_executer_decision" bpmnElement="task_executer_decision">
+        <dc:Bounds x="1440" y="2340" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ END EVENT ══ -->
+      <bpmndi:BPMNShape id="shape_end1" bpmnElement="end1">
+        <dc:Bounds x="1640" y="2360" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1616" y="2402" width="84" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ══ SEQUENCE FLOW EDGES ══ -->
+      <bpmndi:BPMNEdge id="edge_start_emettre" bpmnElement="sf_start_to_emettre">
+        <di:waypoint x="116" y="278"/><di:waypoint x="160" y="280"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_emettre_transmettre" bpmnElement="sf_emettre_to_transmettre_ordre">
+        <di:waypoint x="240" y="320"/><di:waypoint x="240" y="660"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_transmettre_recevoir" bpmnElement="sf_transmettre_ordre_to_parallel_start">
+        <di:waypoint x="320" y="700"/><di:waypoint x="360" y="280"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_recevoir_parallel" bpmnElement="sf_recevoir_to_parallel">
+        <di:waypoint x="520" y="280"/><di:waypoint x="580" y="700"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_parallel_communiquer" bpmnElement="sf_parallel_to_communiquer">
+        <di:waypoint x="580" y="720"/><di:waypoint x="720" y="2380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_communiquer_analyse" bpmnElement="sf_communiquer_to_analyse">
+        <di:waypoint x="800" y="2380"/><di:waypoint x="840" y="2380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_analyse_parallel_end" bpmnElement="sf_analyse_to_parallel_end">
+        <di:waypoint x="1000" y="2380"/><di:waypoint x="1060" y="2380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_parallel_dispo" bpmnElement="sf_parallel_to_disponibilites">
+        <di:waypoint x="580" y="720"/><di:waypoint x="720" y="2080"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_dispo_parallel_end" bpmnElement="sf_disponibilites_to_parallel_end">
+        <di:waypoint x="800" y="2080"/><di:waypoint x="1060" y="2380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_parallel_end_info" bpmnElement="sf_parallel_end_to_transmettre_info">
+        <di:waypoint x="1080" y="2360"/><di:waypoint x="1200" y="740"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_info_entrer" bpmnElement="sf_transmettre_info_to_entrer">
+        <di:waypoint x="1200" y="740"/><di:waypoint x="1200" y="1140"/>
+      </bpmndi:BPMNEdge>
+      <!-- Phase 1 -->
+      <bpmndi:BPMNEdge id="edge_entrer_valider" bpmnElement="sf_entrer_to_valider">
+        <di:waypoint x="1200" y="1220"/><di:waypoint x="1200" y="1640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_valider_demander_se" bpmnElement="sf_valider_to_demander_se">
+        <di:waypoint x="1120" y="1680"/><di:waypoint x="440" y="1180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_demander_se_generer" bpmnElement="sf_demander_se_to_generer">
+        <di:waypoint x="440" y="1220"/><di:waypoint x="640" y="1680"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_generer_se_transmettre" bpmnElement="sf_generer_se_to_transmettre">
+        <di:waypoint x="640" y="1640"/><di:waypoint x="640" y="740"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_transmettre_se_proposer" bpmnElement="sf_transmettre_se_to_proposer">
+        <di:waypoint x="640" y="660"/><di:waypoint x="640" y="1180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_proposer_se_gw" bpmnElement="sf_proposer_se_to_gw">
+        <di:waypoint x="640" y="1140"/><di:waypoint x="780" y="278"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_se_oui" bpmnElement="sf_se_oui">
+        <di:waypoint x="800" y="278"/><di:waypoint x="840" y="280"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="808" y="260" width="24" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_se_non" bpmnElement="sf_se_non">
+        <di:waypoint x="780" y="258"/><di:waypoint x="780" y="160"/><di:waypoint x="840" y="160"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="786" y="200" width="24" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_retour_se_corrections" bpmnElement="sf_retour_se_to_corrections">
+        <di:waypoint x="840" y="160"/><di:waypoint x="440" y="700"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_corrections_se_demander" bpmnElement="sf_corrections_se_to_demander_se">
+        <di:waypoint x="440" y="740"/><di:waypoint x="440" y="1140"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_approuver_se_transmettre" bpmnElement="sf_approuver_se_to_transmettre_approuves">
+        <di:waypoint x="1000" y="280"/><di:waypoint x="1040" y="700"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_se_approuves_demander_obj" bpmnElement="sf_se_approuves_to_demander_obj">
+        <di:waypoint x="1120" y="700"/><di:waypoint x="440" y="1300"/>
+      </bpmndi:BPMNEdge>
+      <!-- Phase 2 -->
+      <bpmndi:BPMNEdge id="edge_demander_obj_generer" bpmnElement="sf_demander_obj_to_generer">
+        <di:waypoint x="440" y="1380"/><di:waypoint x="640" y="1780"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_generer_obj_proposer" bpmnElement="sf_generer_obj_to_proposer">
+        <di:waypoint x="640" y="1740"/><di:waypoint x="640" y="1380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_proposer_obj_transmettre" bpmnElement="sf_proposer_obj_to_transmettre">
+        <di:waypoint x="640" y="1300"/><di:waypoint x="840" y="840"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_transmettre_obj_gw" bpmnElement="sf_transmettre_obj_to_gw">
+        <di:waypoint x="840" y="840"/><di:waypoint x="980" y="278"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_obj_oui" bpmnElement="sf_obj_oui">
+        <di:waypoint x="1000" y="278"/><di:waypoint x="1040" y="280"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1008" y="260" width="24" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_obj_non" bpmnElement="sf_obj_non">
+        <di:waypoint x="980" y="258"/><di:waypoint x="980" y="160"/><di:waypoint x="1040" y="160"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="986" y="200" width="24" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_retour_obj_corrections" bpmnElement="sf_retour_obj_to_corrections">
+        <di:waypoint x="1040" y="160"/><di:waypoint x="840" y="840"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_corrections_obj_demander" bpmnElement="sf_corrections_obj_to_demander_obj">
+        <di:waypoint x="840" y="840"/><di:waypoint x="440" y="1340"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_approuver_obj_transmettre" bpmnElement="sf_approuver_obj_to_transmettre_approuves">
+        <di:waypoint x="1200" y="280"/><di:waypoint x="1320" y="840"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_obj_approuves_demander_im_dta" bpmnElement="sf_obj_approuves_to_demander_im_dta">
+        <di:waypoint x="1320" y="880"/><di:waypoint x="440" y="1460"/>
+      </bpmndi:BPMNEdge>
+      <!-- Phase 3 -->
+      <bpmndi:BPMNEdge id="edge_demander_im_dta_generer" bpmnElement="sf_demander_im_dta_to_generer">
+        <di:waypoint x="440" y="1540"/><di:waypoint x="640" y="1880"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_generer_im_dta_proposer" bpmnElement="sf_generer_im_dta_to_proposer">
+        <di:waypoint x="640" y="1840"/><di:waypoint x="640" y="1540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_proposer_im_dta_transmettre" bpmnElement="sf_proposer_im_dta_to_transmettre">
+        <di:waypoint x="640" y="1460"/><di:waypoint x="1040" y="940"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_transmettre_im_dta_gw" bpmnElement="sf_transmettre_im_dta_to_gw">
+        <di:waypoint x="1040" y="940"/><di:waypoint x="1180" y="278"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_im_dta_oui" bpmnElement="sf_im_dta_oui">
+        <di:waypoint x="1200" y="278"/><di:waypoint x="1240" y="280"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1208" y="260" width="24" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_im_dta_non" bpmnElement="sf_im_dta_non">
+        <di:waypoint x="1180" y="258"/><di:waypoint x="1180" y="160"/><di:waypoint x="1240" y="160"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1186" y="200" width="24" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_retour_im_dta_corrections" bpmnElement="sf_retour_im_dta_to_corrections">
+        <di:waypoint x="1240" y="160"/><di:waypoint x="1040" y="940"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_corrections_im_dta_demander" bpmnElement="sf_corrections_im_dta_to_demander">
+        <di:waypoint x="1040" y="940"/><di:waypoint x="440" y="1500"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_approuver_im_dta_arreter" bpmnElement="sf_approuver_im_dta_to_arreter">
+        <di:waypoint x="1400" y="280"/><di:waypoint x="1440" y="280"/>
+      </bpmndi:BPMNEdge>
+      <!-- Phase 4 -->
+      <bpmndi:BPMNEdge id="edge_arreter_transmettre_decision" bpmnElement="sf_arreter_to_transmettre_decision">
+        <di:waypoint x="1520" y="320"/><di:waypoint x="1520" y="660"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_decision_executer" bpmnElement="sf_decision_to_executer">
+        <di:waypoint x="1520" y="740"/><di:waypoint x="1520" y="2380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_executer_end" bpmnElement="sf_executer_to_end">
+        <di:waypoint x="1600" y="2380"/><di:waypoint x="1640" y="2378"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>
